@@ -21,9 +21,19 @@ body {
   box-sizing: border-box;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 button:focus-visible,
 input:focus-visible {
   outline: 3px solid #5bc0eb;
   outline-offset: 2px;
 }
-

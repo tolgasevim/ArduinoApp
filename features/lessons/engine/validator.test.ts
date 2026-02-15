@@ -19,6 +19,8 @@ void loop(){
     const result = validateMissionCode(mission!, code);
     expect(result.isPass).toBe(true);
     expect(result.missingCheckpointIds).toHaveLength(0);
+    expect(result.profile.deterministic).toBe(true);
+    expect(result.checkpointResults.every((entry) => entry.passed)).toBe(true);
   });
 
   it("fails mission 2 when analogWrite value is out of range", () => {
@@ -31,6 +33,9 @@ void loop(){ analogWrite(9, 999); }`;
     const result = validateMissionCode(mission!, code);
     expect(result.isPass).toBe(false);
     expect(result.missingCheckpointIds).toContain("pwm-write");
+    const pwmCheckpoint = result.checkpointResults.find((entry) => entry.checkpointId === "pwm-write");
+    expect(pwmCheckpoint?.passed).toBe(false);
+    expect(pwmCheckpoint?.failureReason.length).toBeGreaterThan(0);
   });
 
   it("passes mission 5 when Serial.begin and Serial.println exist", () => {
@@ -45,6 +50,7 @@ void loop(){
 
     const result = validateMissionCode(mission!, code);
     expect(result.isPass).toBe(true);
+    const serialPrint = result.checkpointResults.find((entry) => entry.checkpointId === "serial-print");
+    expect(serialPrint?.evidence.length).toBeGreaterThan(0);
   });
 });
-

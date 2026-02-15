@@ -1,19 +1,34 @@
-import type { CheckpointRule, Mission } from "@/features/lessons/types";
+import type {
+  CheckpointRule,
+  Mission,
+  MissionCheckpointResult,
+  MissionValidationProfile
+} from "@/features/lessons/types";
 
 export type MissionValidationResult = {
   isPass: boolean;
   passedCheckpointIds: string[];
   missingCheckpointIds: string[];
+  checkpointResults: MissionCheckpointResult[];
+  profile: MissionValidationProfile;
 };
-
-function normalizeCode(code: string): string {
-  return code.replace(/\s+/g, " ").trim().toLowerCase();
-}
 
 type ParsedCall = {
   functionName: string;
   args: string[];
 };
+
+type RuleOutcome = {
+  passed: boolean;
+  evidence: string[];
+  failureReason: string;
+};
+
+const DEFAULT_FAILURE_REASON = "Rule did not pass.";
+
+function normalizeCode(code: string): string {
+  return code.replace(/\s+/g, " ").trim().toLowerCase();
+}
 
 function splitArgs(rawArgs: string): string[] {
   const args: string[] = [];
@@ -50,7 +65,7 @@ function parseCalls(code: string): ParsedCall[] {
   for (const match of code.matchAll(callRegex)) {
     const [, fnName, rawArgs] = match;
     calls.push({
-      functionName: fnName.toLowerCase(),
+      functionName: normalizeCode(fnName),
       args: splitArgs(rawArgs).map((arg) => normalizeCode(arg))
     });
   }
@@ -74,34 +89,81 @@ function matchesArgs(
   );
 }
 
-function evaluateRule(rule: CheckpointRule, normalizedCode: string, parsedCalls: ParsedCall[]): boolean {
+function passOutcome(evidence: string): RuleOutcome {
+  return {
+    passed: true,
+    evidence: [evidence],
+    failureReason: ""
+  };
+}
+
+function failOutcome(failureReason: string): RuleOutcome {
+  return {
+    passed: false,
+    evidence: [],
+    failureReason
+  };
+}
+
+function evaluateRule(rule: CheckpointRule, normalizedCode: string, parsedCalls: ParsedCall[]): RuleOutcome {
   if (rule.type === "contains") {
-    return normalizedCode.includes(normalizeCode(rule.text));
+    const needle = normalizeCode(rule.text);
+    if (normalizedCode.includes(needle)) {
+      return passOutcome(`Contains "${rule.text}"`);
+    }
+    return failOutcome(`Missing expected snippet "${rule.text}".`);
   }
 
   if (rule.type === "regex") {
     const regex = new RegExp(rule.pattern, rule.flags);
-    return regex.test(normalizedCode);
+    if (regex.test(normalizedCode)) {
+      return passOutcome(`Matches pattern /${rule.pattern}/${rule.flags ?? ""}`);
+    }
+    return failOutcome(`Code does not match pattern /${rule.pattern}/${rule.flags ?? ""}.`);
   }
 
   if (rule.type === "anyOf") {
-    return rule.rules.some((nestedRule) => evaluateRule(nestedRule, normalizedCode, parsedCalls));
+    const outcomes = rule.rules.map((nestedRule) =>
+      evaluateRule(nestedRule, normalizedCode, parsedCalls)
+    );
+    const passed = outcomes.find((outcome) => outcome.passed);
+    if (passed) {
+      return passed;
+    }
+
+    const reasons = outcomes.map((outcome) => outcome.failureReason).filter(Boolean);
+    return failOutcome(reasons.join(" OR ") || DEFAULT_FAILURE_REASON);
   }
 
   if (rule.type === "call") {
     const targetFn = normalizeCode(rule.functionName);
     const matchingCalls = parsedCalls.filter((call) => call.functionName === targetFn);
     const minCount = rule.minCount ?? 1;
+    const expectedArgs = rule.args ?? [];
+    const matchMode = rule.matchMode ?? "exact";
 
-    if (!rule.args || rule.args.length === 0) {
-      return matchingCalls.length >= minCount;
+    if (expectedArgs.length === 0) {
+      if (matchingCalls.length >= minCount) {
+        return passOutcome(`Found ${matchingCalls.length} call(s) to ${rule.functionName}.`);
+      }
+      return failOutcome(
+        `Expected at least ${minCount} call(s) to ${rule.functionName}, found ${matchingCalls.length}.`
+      );
     }
 
-    const matchMode = rule.matchMode ?? "exact";
     const count = matchingCalls.filter((call) =>
-      matchesArgs(call.args, rule.args ?? [], matchMode)
+      matchesArgs(call.args, expectedArgs, matchMode)
     ).length;
-    return count >= minCount;
+
+    if (count >= minCount) {
+      return passOutcome(
+        `Found ${count} matching ${rule.functionName} call(s) with args ${expectedArgs.join(", ")}.`
+      );
+    }
+
+    return failOutcome(
+      `Expected ${rule.functionName}(${expectedArgs.join(", ")}) with mode ${matchMode}; found ${count} match(es).`
+    );
   }
 
   if (rule.type === "numericArgRange") {
@@ -109,45 +171,74 @@ function evaluateRule(rule: CheckpointRule, normalizedCode: string, parsedCalls:
     const minCount = rule.minCount ?? 1;
     const prefixArgs = (rule.argsPrefix ?? []).map((arg) => normalizeCode(arg));
 
-    const count = parsedCalls.filter((call) => {
-      if (call.functionName !== targetFn) {
-        return false;
-      }
+    const matchingCount = parsedCalls.filter((call) => {
+      if (call.functionName !== targetFn) return false;
 
       if (prefixArgs.length > 0 && !matchesArgs(call.args, prefixArgs, "startsWith")) {
         return false;
       }
 
       const numericRaw = call.args[rule.argIndex];
-      if (!numericRaw) {
-        return false;
-      }
+      if (!numericRaw) return false;
 
       const numericValue = Number(numericRaw);
       return Number.isFinite(numericValue) && numericValue >= rule.min && numericValue <= rule.max;
     }).length;
 
-    return count >= minCount;
+    if (matchingCount >= minCount) {
+      return passOutcome(
+        `Found ${matchingCount} ${rule.functionName} call(s) with arg[${rule.argIndex}] in range ${rule.min}-${rule.max}.`
+      );
+    }
+
+    return failOutcome(
+      `Expected ${rule.functionName} arg[${rule.argIndex}] in range ${rule.min}-${rule.max}.`
+    );
   }
 
-  return false;
+  return failOutcome(DEFAULT_FAILURE_REASON);
+}
+
+function buildCheckpointResult(
+  checkpointId: string,
+  ruleOutcomes: RuleOutcome[]
+): MissionCheckpointResult {
+  const failed = ruleOutcomes.find((outcome) => !outcome.passed);
+
+  return {
+    checkpointId,
+    passed: !failed,
+    evidence: ruleOutcomes.flatMap((outcome) => outcome.evidence),
+    failureReason: failed?.failureReason ?? ""
+  };
 }
 
 export function validateMissionCode(mission: Mission, code: string): MissionValidationResult {
   const normalized = normalizeCode(code);
   const parsedCalls = parseCalls(code);
 
-  const passed = mission.checkpoints
-    .filter((checkpoint) => checkpoint.rules.every((rule) => evaluateRule(rule, normalized, parsedCalls)))
-    .map((checkpoint) => checkpoint.id);
+  const checkpointResults = mission.checkpoints.map((checkpoint) => {
+    const outcomes = checkpoint.rules.map((rule) => evaluateRule(rule, normalized, parsedCalls));
+    return buildCheckpointResult(checkpoint.id, outcomes);
+  });
 
-  const missing = mission.checkpoints
-    .map((checkpoint) => checkpoint.id)
-    .filter((checkpointId) => !passed.includes(checkpointId));
+  const passedCheckpointIds = checkpointResults
+    .filter((result) => result.passed)
+    .map((result) => result.checkpointId);
+
+  const missingCheckpointIds = checkpointResults
+    .filter((result) => !result.passed)
+    .map((result) => result.checkpointId);
 
   return {
-    isPass: missing.length === 0,
-    passedCheckpointIds: passed,
-    missingCheckpointIds: missing
+    isPass: missingCheckpointIds.length === 0,
+    passedCheckpointIds,
+    missingCheckpointIds,
+    checkpointResults,
+    profile: {
+      profileId: mission.validatorVersion,
+      deterministic: true
+    }
   };
 }
+

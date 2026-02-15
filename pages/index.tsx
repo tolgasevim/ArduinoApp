@@ -11,9 +11,11 @@ import {
   type MissionValidationResult,
   validateMissionCode
 } from "@/features/lessons/engine/validator";
+import { getLevelForXp } from "@/features/gamification/levels";
 import type { Mission } from "@/features/lessons/types";
 import { completeMission, withProfile } from "@/features/progress/engine";
 import type { LearnerProgress } from "@/features/progress/types";
+import { runtimeConfig } from "@/lib/config/runtime";
 import { loadProgress, saveProgress } from "@/lib/storage/progressStorage";
 
 type MissionRunState = {
@@ -58,6 +60,12 @@ export default function HomePage() {
     saveProgress(progress);
   }, [progress]);
 
+  useEffect(() => {
+    if (!runtimeConfig.hardwareModeEnabled && learningMode === "hardware") {
+      setLearningMode("simulator");
+    }
+  }, [learningMode]);
+
   const nextMission = useMemo(() => {
     if (!progress) return missions[0];
     return (
@@ -93,6 +101,7 @@ export default function HomePage() {
   const currentRun = missionRuns[nextMission.id] ?? getInitialRunState(nextMission);
   const isCompleted = progress.completedMissionIds.includes(nextMission.id);
   const visibleHints = getVisibleHints(nextMission.hints, currentRun.attempts, isCompleted);
+  const level = getLevelForXp(progress.xp);
 
   function updateCurrentRun(partial: Partial<MissionRunState>): void {
     setMissionRuns((current) => ({
@@ -146,8 +155,19 @@ export default function HomePage() {
 
       <AppShell
         title="Build. Code. Win."
-        subtitle="This is the MVP implementation baseline. It includes onboarding, mission data, progress tracking, and rewards."
+        subtitle="This pilot is simulator-first, child-safe by default, and designed for fast beginner wins."
       >
+        <section
+          className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm text-slate-700"
+          aria-live="polite"
+        >
+          <p className="font-semibold text-slateBlue">Launch mode: No third-party analytics SDK</p>
+          <p className="mt-1">
+            Analytics mode is set to <code>{runtimeConfig.analyticsMode}</code>. Region notice is{" "}
+            <code>{runtimeConfig.regionNotice}</code>.
+          </p>
+        </section>
+
         {celebrationMessage ? (
           <section className="rounded-2xl border border-neonMint bg-[#ecfff4] px-5 py-3 text-sm font-semibold text-slateBlue">
             {celebrationMessage}
@@ -160,13 +180,21 @@ export default function HomePage() {
           <>
             <ProgressSummary
               nickname={progress.profile.nickname}
+              levelTitle={level.title}
+              levelNumber={level.level}
               xp={progress.xp}
               badges={progress.badges.length}
               completedMissions={progress.completedMissionIds.length}
               totalMissions={missions.length}
               streakDays={progress.streakDays}
             />
-            <HardwareModePanel mode={learningMode} onModeChange={setLearningMode} />
+            {runtimeConfig.hardwareModeEnabled ? (
+              <HardwareModePanel mode={learningMode} onModeChange={setLearningMode} />
+            ) : (
+              <section className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-card">
+                Hardware mode is disabled by runtime config. Simulator mode is active.
+              </section>
+            )}
             <MissionCard
               mission={nextMission}
               isCompleted={isCompleted}

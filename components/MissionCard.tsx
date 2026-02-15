@@ -27,7 +27,9 @@ export default function MissionCard({
   onValidate,
   onReset
 }: MissionCardProps) {
-  const passedIds = new Set(validationResult?.passedCheckpointIds ?? []);
+  const checkpointResultMap = new Map(
+    (validationResult?.checkpointResults ?? []).map((result) => [result.checkpointId, result])
+  );
 
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-card md:p-8">
@@ -43,6 +45,18 @@ export default function MissionCard({
       <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
         Running in: {modeLabel}
       </p>
+      <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+        Difficulty: {mission.difficulty}
+      </p>
+
+      <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+        <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Safety notes</p>
+        <ul className="mt-2 space-y-1 text-sm text-slate-700">
+          {mission.safetyNotes.map((note) => (
+            <li key={note}>- {note}</li>
+          ))}
+        </ul>
+      </div>
 
       <div className="mt-5 grid gap-5 md:grid-cols-[1.2fr_1fr]">
         <article className="rounded-2xl bg-slateBlue p-4 text-sm text-slate-100">
@@ -84,34 +98,54 @@ export default function MissionCard({
             <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Checkpoints</p>
             <ul className="mt-2 space-y-2 text-sm text-slate-700">
               {mission.checkpoints.map((checkpoint) => (
-                <li
-                  key={checkpoint.id}
-                  className={`rounded-xl border p-2 ${
-                    passedIds.has(checkpoint.id)
-                      ? "border-neonMint bg-[#ecfff4]"
-                      : "border-slate-200 bg-white"
-                  }`}
-                >
-                  <p className="font-semibold">
-                    {passedIds.has(checkpoint.id) ? "Passed: " : "Pending: "}
-                    {checkpoint.title}
-                  </p>
-                  <p className="text-slate-600">{checkpoint.description}</p>
+                <li key={checkpoint.id} className="rounded-xl border border-slate-200 bg-white p-2">
+                  {(() => {
+                    const checkpointResult = checkpointResultMap.get(checkpoint.id);
+                    const isPassed = checkpointResult?.passed ?? false;
+
+                    return (
+                      <>
+                        <p
+                          className={`font-semibold ${
+                            isPassed ? "text-[#0c6b36]" : "text-slate-900"
+                          }`}
+                        >
+                          {isPassed ? "Passed: " : "Pending: "}
+                          {checkpoint.title}
+                        </p>
+                        <p className="text-slate-600">{checkpoint.description}</p>
+                        {checkpointResult?.evidence.length ? (
+                          <ul className="mt-1 text-xs text-slate-500">
+                            {checkpointResult.evidence.map((evidenceLine) => (
+                              <li key={evidenceLine}>- {evidenceLine}</li>
+                            ))}
+                          </ul>
+                        ) : null}
+                        {checkpointResult && !checkpointResult.passed && checkpointResult.failureReason ? (
+                          <p className="mt-1 text-xs font-semibold text-coral">
+                            {checkpointResult.failureReason}
+                          </p>
+                        ) : null}
+                      </>
+                    );
+                  })()}
                 </li>
               ))}
             </ul>
 
-            {validationResult && !validationResult.isPass ? (
-              <p className="mt-3 rounded-xl border border-coral bg-[#fff1ee] p-2 text-xs font-semibold text-coral">
-                Keep going. Complete every checkpoint to finish this mission.
-              </p>
-            ) : null}
+            <div aria-live="polite" className="mt-3">
+              {validationResult && !validationResult.isPass ? (
+                <p className="rounded-xl border border-coral bg-[#fff1ee] p-2 text-xs font-semibold text-coral">
+                  Keep going. Complete every checkpoint to finish this mission.
+                </p>
+              ) : null}
 
-            {validationResult?.isPass ? (
-              <p className="mt-3 rounded-xl border border-neonMint bg-[#ecfff4] p-2 text-xs font-semibold text-slateBlue">
-                Mission check passed.
-              </p>
-            ) : null}
+              {validationResult?.isPass ? (
+                <p className="rounded-xl border border-neonMint bg-[#ecfff4] p-2 text-xs font-semibold text-slateBlue">
+                  Mission check passed ({validationResult.profile.profileId}).
+                </p>
+              ) : null}
+            </div>
           </article>
         </div>
       </div>

@@ -29,6 +29,8 @@ export type CheckpointRule =
       rules: CheckpointRule[];
     };
 
+export type MissionDifficulty = "starter" | "easy" | "medium" | "hard";
+
 export type MissionCheckpoint = {
   id: string;
   title: string;
@@ -45,12 +47,28 @@ export type MissionReward = {
 export type Mission = {
   id: string;
   order: number;
+  difficulty: MissionDifficulty;
+  prerequisiteMissionIds: string[];
+  validatorVersion: string;
   title: string;
   summary: string;
   objective: string;
+  safetyNotes: string[];
   estimatedMinutes: number;
   starterCode: string;
   hints: string[];
   checkpoints: MissionCheckpoint[];
   reward: MissionReward;
+};
+
+export type MissionCheckpointResult = {
+  checkpointId: string;
+  passed: boolean;
+  evidence: string[];
+  failureReason: string;
+};
+
+export type MissionValidationProfile = {
+  profileId: string;
+  deterministic: boolean;
 };

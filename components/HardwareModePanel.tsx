@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  deriveConnectionState,
   disconnectPort,
   getWebSerialCapability,
   requestAndOpenPort,
   sendSerialText,
+  type WebSerialConnectionState,
   type SerialPortLike,
   type WebSerialCapability
 } from "@/features/hardware/webSerial";
+import { runtimeConfig } from "@/lib/config/runtime";
 
 export type LearningMode = "simulator" | "hardware";
 
@@ -26,6 +29,7 @@ function nowStamp(): string {
 
 export default function HardwareModePanel({ mode, onModeChange }: HardwareModePanelProps) {
   const [capability, setCapability] = useState<WebSerialCapability | null>(null);
+  const [isChecking, setIsChecking] = useState(true);
   const [port, setPort] = useState<SerialPortLike | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [serialInput, setSerialInput] = useState("ping");
@@ -35,6 +39,7 @@ export default function HardwareModePanel({ mode, onModeChange }: HardwareModePa
 
   useEffect(() => {
     setCapability(getWebSerialCapability());
+    setIsChecking(false);
   }, []);
 
   useEffect(() => {
@@ -56,6 +61,18 @@ export default function HardwareModePanel({ mode, onModeChange }: HardwareModePa
     }
     return "Simulator mode";
   }, [mode]);
+
+  const connectionState: WebSerialConnectionState = useMemo(
+    () =>
+      deriveConnectionState({
+        isChecking,
+        isConnecting,
+        hasPort: Boolean(port),
+        hasError: Boolean(error),
+        isFallbackMode: mode === "simulator" && Boolean(error)
+      }),
+    [error, isChecking, isConnecting, mode, port]
+  );
 
   async function beginReadLoop(targetPort: SerialPortLike): Promise<void> {
     if (!targetPort.readable) {
@@ -90,6 +107,12 @@ export default function HardwareModePanel({ mode, onModeChange }: HardwareModePa
   }
 
   async function handleConnect(): Promise<void> {
+    if (!runtimeConfig.hardwareModeEnabled) {
+      setError("Hardware mode is disabled by runtime configuration.");
+      onModeChange("simulator");
+      return;
+    }
+
     if (!capability?.canUseHardwareMode) {
       setError(capability?.reason ?? "Hardware mode is unavailable.");
       onModeChange("simulator");
@@ -152,7 +175,7 @@ export default function HardwareModePanel({ mode, onModeChange }: HardwareModePa
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-2xl font-black text-slateBlue">Learning mode</h2>
         <p className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-slate-700">
-          {modeBadge}
+          {modeBadge} | {connectionState}
         </p>
       </div>
 
@@ -172,7 +195,7 @@ export default function HardwareModePanel({ mode, onModeChange }: HardwareModePa
         <button
           type="button"
           onClick={port ? handleDisconnect : handleConnect}
-          disabled={isConnecting}
+          disabled={isConnecting || !runtimeConfig.hardwareModeEnabled}
           className="rounded-xl bg-coral px-4 py-3 text-left font-semibold text-white disabled:opacity-70"
         >
           {port ? "Disconnect Arduino" : isConnecting ? "Connecting..." : "Connect Arduino"}
@@ -182,6 +205,11 @@ export default function HardwareModePanel({ mode, onModeChange }: HardwareModePa
       <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-700">
         <p className="font-semibold">Web Serial status</p>
         <p className="mt-1">{capability?.reason ?? "Checking browser support..."}</p>
+        {!runtimeConfig.hardwareModeEnabled ? (
+          <p className="mt-1 text-xs font-semibold text-coral">
+            Hardware mode is disabled by `NEXT_PUBLIC_HARDWARE_MODE_ENABLED`.
+          </p>
+        ) : null}
       </div>
 
       <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">

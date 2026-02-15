@@ -1,3 +1,11 @@
+export type WebSerialConnectionState =
+  | "idle"
+  | "checking"
+  | "connecting"
+  | "connected"
+  | "error"
+  | "fallback";
+
 export type WebSerialCapability = {
   isSupported: boolean;
   isSecureContext: boolean;
@@ -19,12 +27,29 @@ type NavigatorWithSerial = Navigator & {
   };
 };
 
+export type ConnectionStateInput = {
+  isChecking: boolean;
+  isConnecting: boolean;
+  hasPort: boolean;
+  hasError: boolean;
+  isFallbackMode: boolean;
+};
+
 function getNavigatorSerial(): NavigatorWithSerial["serial"] | null {
   if (typeof navigator === "undefined") {
     return null;
   }
 
   return (navigator as NavigatorWithSerial).serial ?? null;
+}
+
+export function deriveConnectionState(input: ConnectionStateInput): WebSerialConnectionState {
+  if (input.isChecking) return "checking";
+  if (input.isFallbackMode) return "fallback";
+  if (input.isConnecting) return "connecting";
+  if (input.hasError) return "error";
+  if (input.hasPort) return "connected";
+  return "idle";
 }
 
 export function getWebSerialCapability(): WebSerialCapability {

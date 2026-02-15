@@ -43,7 +43,17 @@ export default function SimulatorPanel({ mission, code }: SimulatorPanelProps) {
           <li key={note}>- {note}</li>
         ))}
       </ul>
+
+      <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+        <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Sim events</p>
+        <ul className="mt-2 space-y-1 text-xs text-slate-700">
+          {snapshot.events.slice(0, 4).map((eventItem) => (
+            <li key={`${eventItem.timestamp}-${eventItem.eventType}-${eventItem.pin}`}>
+              [{eventItem.timestamp}ms] {eventItem.eventType} {eventItem.pin} {eventItem.value}
+            </li>
+          ))}
+        </ul>
+      </div>
     </article>
   );
 }
-

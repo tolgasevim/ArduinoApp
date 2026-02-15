@@ -1,17 +1,20 @@
 # Arduino Quest
 
-Arduino Quest is a web app that helps beginners learn Arduino through short, game-like missions.
+Arduino Quest is a simulator-first web app that teaches Arduino through short, reward-based missions for beginners.
 
-## Current status
+## Prime-time baseline implemented
 
-Phase 1 implementation has started with:
-
-- Next.js + TypeScript + Tailwind scaffold
-- App shell and homepage mission flow stub
-- Lesson schema and missions 1-6 content
-- Local progress storage utilities
-- Optional Web Serial hardware mode panel (capability checks + connect/disconnect + serial monitor)
-- Unit tests for mission validator and progress engine
+- 12 lesson missions with typed schema, prerequisites, safety notes, and validator versions.
+- Evidence-based checkpoint validator with deterministic profiles.
+- Simulator snapshots with normalized event output.
+- Optional Web Serial hardware mode with connection-state model and simulator fallback.
+- Runtime flags:
+  - `NEXT_PUBLIC_ANALYTICS_MODE` (launch default `off`)
+  - `NEXT_PUBLIC_HARDWARE_MODE_ENABLED`
+  - `NEXT_PUBLIC_REGION_NOTICE`
+- Policy pages: `Privacy`, `Parents`, `Terms`, `Safety`.
+- CI workflow (`lint`, `test`, `build`) for PR and main.
+- Deployment and operations docs for Cloudflare Pages.
 
 ## Development
 
@@ -27,4 +30,15 @@ pnpm lint
 pnpm test
 pnpm build
 ```
+
+## Runtime config
+
+Copy `.env.example` values into `.env.local` when needed.
+
+## Deployment docs
+
+- `docs/cloudflare-pages-deploy.md`
+- `docs/pilot-launch-checklist.md`
+- `docs/incident-response-runbook.md`
+- `docs/legal-gate-checklist.md`
 

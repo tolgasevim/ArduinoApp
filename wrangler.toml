@@ -1,0 +1,7 @@
+name = "arduino-quest-worker"
+main = "workers/health.ts"
+compatibility_date = "2026-02-15"
+
+[observability]
+enabled = true
+

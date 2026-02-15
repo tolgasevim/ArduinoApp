@@ -1,5 +1,7 @@
 type ProgressSummaryProps = {
   nickname: string;
+  levelTitle: string;
+  levelNumber: number;
   xp: number;
   badges: number;
   completedMissions: number;
@@ -9,6 +11,8 @@ type ProgressSummaryProps = {
 
 export default function ProgressSummary({
   nickname,
+  levelTitle,
+  levelNumber,
   xp,
   badges,
   completedMissions,
@@ -19,6 +23,9 @@ export default function ProgressSummary({
     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-card">
       <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Pilot</p>
       <h2 className="mt-1 text-2xl font-black text-slateBlue">{nickname}</h2>
+      <p className="mt-1 text-sm font-semibold text-slate-600">
+        Level {levelNumber}: {levelTitle}
+      </p>
 
       <dl className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-4">
         <div className="rounded-xl bg-slate-50 p-3">
@@ -43,4 +50,3 @@ export default function ProgressSummary({
     </section>
   );
 }
-
