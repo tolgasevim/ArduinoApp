@@ -1,4 +1,4 @@
-name = "arduino-quest-worker"
+name = "arduinoapp"
 main = "workers/health.ts"
 compatibility_date = "2026-02-15"
 
