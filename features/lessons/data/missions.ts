@@ -13,14 +13,13 @@ export const missions: Mission[] = [
     safetyNotes: ["No hardware needed in simulator mode.", "If using hardware, connect only to USB."],
     estimatedMinutes: 8,
     starterCode: `void setup() {
-  pinMode(13, OUTPUT);
+  // Step 1: get the LED pin ready.
 }
 
 void loop() {
-  digitalWrite(13, HIGH);
-  delay(1000);
-  digitalWrite(13, LOW);
-  delay(1000);
+  // Step 2: turn the LED on.
+  // Step 3: wait.
+  // Step 4: turn the LED off.
 }`,
     hints: [
       "Use digitalWrite(13, HIGH) to turn LED on.",
@@ -89,12 +88,13 @@ void loop() {
     safetyNotes: ["PWM values must stay between 0 and 255."],
     estimatedMinutes: 10,
     starterCode: `void setup() {
-  pinMode(9, OUTPUT);
+  // Step 1: prepare the PWM output pin.
 }
 
 void loop() {
-  analogWrite(9, 128);
-  delay(700);
+  int brightness = 128;
+  // Step 2: send the brightness to the LED.
+  // Step 3: try different values.
 }`,
     hints: [
       "Try values 0, 128, and 255.",
@@ -154,17 +154,13 @@ void loop() {
     safetyNotes: ["Use INPUT_PULLUP in starter wiring for stable reads."],
     estimatedMinutes: 10,
     starterCode: `void setup() {
-  pinMode(2, INPUT_PULLUP);
-  pinMode(13, OUTPUT);
+  // Step 1: prepare the button input and LED output.
 }
 
 void loop() {
-  int buttonState = digitalRead(2);
-  if (buttonState == LOW) {
-    digitalWrite(13, HIGH);
-  } else {
-    digitalWrite(13, LOW);
-  }
+  int buttonState = 0;
+  // Step 2: read the button state.
+  // Step 3: add branching for pressed and released states.
 }`,
     hints: [
       "With INPUT_PULLUP, pressed is usually LOW.",
@@ -246,13 +242,15 @@ void loop() {
     safetyNotes: ["Analog input values should stay in 0-1023 range."],
     estimatedMinutes: 12,
     starterCode: `void setup() {
-  pinMode(9, OUTPUT);
+  // Step 1: prepare the LED output pin.
 }
 
 void loop() {
-  int sensorValue = analogRead(A0);
-  int brightness = map(sensorValue, 0, 1023, 0, 255);
-  analogWrite(9, brightness);
+  int sensorValue = 0;
+  int brightness = 0;
+  // Step 2: read the knob value.
+  // Step 3: convert it to a brightness range.
+  // Step 4: send the brightness to the LED.
 }`,
     hints: [
       "analogRead(A0) gives 0-1023.",
@@ -315,13 +313,14 @@ void loop() {
     safetyNotes: ["Keep print frequency moderate to avoid flooding serial output."],
     estimatedMinutes: 10,
     starterCode: `void setup() {
-  Serial.begin(9600);
+  // Step 1: start the serial connection.
 }
 
 void loop() {
-  int sensorValue = analogRead(A0);
-  Serial.println(sensorValue);
-  delay(250);
+  int sensorValue = 0;
+  // Step 2: read the sensor.
+  // Step 3: print the value.
+  // Step 4: add a short pause.
 }`,
     hints: [
       "Initialize with Serial.begin(9600).",
@@ -384,14 +383,13 @@ void loop() {
     safetyNotes: ["Keep sound levels low and avoid prolonged loud tones."],
     estimatedMinutes: 11,
     starterCode: `void setup() {
-  pinMode(8, OUTPUT);
+  // Step 1: prepare the buzzer pin.
 }
 
 void loop() {
-  tone(8, 440, 200);
-  delay(300);
-  noTone(8);
-  delay(300);
+  int note = 440;
+  // Step 2: play a tone.
+  // Step 3: stop the tone after a short wait.
 }`,
     hints: [
       "tone(pin, freq, duration) starts a note.",
@@ -455,19 +453,15 @@ void loop() {
     safetyNotes: ["Threshold logic should avoid rapid flickering near boundary."],
     estimatedMinutes: 12,
     starterCode: `void setup() {
-  pinMode(13, OUTPUT);
-  Serial.begin(9600);
+  // Step 1: prepare the LED output.
+  // Step 2: start serial for debugging.
 }
 
 void loop() {
-  int tempValue = analogRead(A1);
-  if (tempValue > 550) {
-    digitalWrite(13, HIGH);
-  } else {
-    digitalWrite(13, LOW);
-  }
-  Serial.println(tempValue);
-  delay(300);
+  int tempValue = 0;
+  // Step 3: read the temperature value.
+  // Step 4: compare it against a threshold.
+  // Step 5: switch the LED on or off.
 }`,
     hints: [
       "Read temperature from analog pin A1.",
@@ -541,22 +535,16 @@ void loop() {
 int echoPin = 6;
 
 void setup() {
-  pinMode(trigPin, OUTPUT);
-  pinMode(echoPin, INPUT);
-  Serial.begin(9600);
+  // Step 1: prepare the trig and echo pins.
+  // Step 2: start serial output.
 }
 
 void loop() {
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
-
-  long duration = pulseIn(echoPin, HIGH);
-  int distanceCm = duration * 0.034 / 2;
-  Serial.println(distanceCm);
-  delay(200);
+  long duration = 0;
+  int distanceCm = 0;
+  // Step 3: send the trigger pulse.
+  // Step 4: measure the echo time.
+  // Step 5: convert the result to centimeters and print it.
 }`,
     hints: [
       "Send a short HIGH pulse on trig pin.",
@@ -637,14 +625,13 @@ void loop() {
 Servo gateServo;
 
 void setup() {
-  gateServo.attach(5);
+  // Step 1: attach the servo to its pin.
 }
 
 void loop() {
-  gateServo.write(20);
-  delay(500);
-  gateServo.write(160);
-  delay(500);
+  // Step 2: move to a low angle.
+  // Step 3: wait.
+  // Step 4: move to a high angle.
 }`,
     hints: [
       "Create a Servo object and attach to a PWM pin.",
@@ -713,25 +700,17 @@ void loop() {
 const int buttonPin = 2;
 
 void setup() {
-  pinMode(ledPin, OUTPUT);
-  pinMode(buttonPin, INPUT_PULLUP);
-  Serial.begin(9600);
+  // Step 1: prepare the LED, button, and serial connection.
 }
 
 void loop() {
-  int waitMs = random(1000, 3000);
-  delay(waitMs);
-  digitalWrite(ledPin, HIGH);
-  unsigned long startTime = millis();
-
-  while (digitalRead(buttonPin) == HIGH) {
-    // wait for press
-  }
-
-  unsigned long reaction = millis() - startTime;
-  digitalWrite(ledPin, LOW);
-  Serial.println(reaction);
-  delay(800);
+  int waitMs = 0;
+  unsigned long startTime = 0;
+  unsigned long reaction = 0;
+  // Step 2: add a random wait.
+  // Step 3: turn on the LED and record the start time.
+  // Step 4: wait for the button press.
+  // Step 5: print the reaction time.
 }`,
     hints: [
       "Use random(min, max) for unpredictable start time.",
@@ -794,16 +773,15 @@ void loop() {
     safetyNotes: ["Use resistor values recommended by your kit guide."],
     estimatedMinutes: 15,
     starterCode: `void setup() {
-  pinMode(9, OUTPUT);
-  Serial.begin(9600);
+  // Step 1: prepare the LED output and serial connection.
 }
 
 void loop() {
-  int lightLevel = analogRead(A2);
-  int brightness = map(lightLevel, 1023, 0, 0, 255);
-  analogWrite(9, brightness);
-  Serial.println(brightness);
-  delay(250);
+  int lightLevel = 0;
+  int brightness = 0;
+  // Step 2: read the light sensor.
+  // Step 3: convert darker readings into brighter output.
+  // Step 4: send the brightness and print it.
 }`,
     hints: [
       "Read light sensor from A2.",
@@ -875,30 +853,16 @@ int echoPin = 6;
 int buzzerPin = 8;
 
 void setup() {
-  pinMode(trigPin, OUTPUT);
-  pinMode(echoPin, INPUT);
-  pinMode(buzzerPin, OUTPUT);
-  Serial.begin(9600);
+  // Step 1: prepare the sensor pins and buzzer pin.
+  // Step 2: start serial output.
 }
 
 void loop() {
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
-
-  long duration = pulseIn(echoPin, HIGH);
-  int distanceCm = duration * 0.034 / 2;
-
-  if (distanceCm < 20) {
-    tone(buzzerPin, 880, 120);
-  } else {
-    noTone(buzzerPin);
-  }
-
-  Serial.println(distanceCm);
-  delay(200);
+  long duration = 0;
+  int distanceCm = 0;
+  // Step 3: measure the distance.
+  // Step 4: compare it to a warning threshold.
+  // Step 5: play or stop the buzzer and print the distance.
 }`,
     hints: [
       "Read distance first using trig/echo pulse flow.",
@@ -964,4 +928,3 @@ void loop() {
     }
   }
 ];
-

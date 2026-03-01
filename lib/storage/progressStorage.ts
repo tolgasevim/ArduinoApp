@@ -1,7 +1,8 @@
 import { getDefaultProgress } from "@/features/progress/engine";
 import type { LearnerProgress } from "@/features/progress/types";
 
-const STORAGE_KEY = "arduino-quest-progress-v1";
+// Bump the key to discard progress earned while starter code incorrectly passed validation.
+const STORAGE_KEY = "arduino-quest-progress-v2";
 
 export function loadProgress(): LearnerProgress {
   if (typeof window === "undefined") {
@@ -31,4 +32,3 @@ export function saveProgress(progress: LearnerProgress): void {
 
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
 }
-

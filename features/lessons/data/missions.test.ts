@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { validateMissionCode } from "../engine/validator";
 import { missions } from "./missions";
 
 describe("missions content integrity", () => {
@@ -38,5 +39,12 @@ describe("missions content integrity", () => {
       });
     });
   });
-});
 
+  it("keeps starter code from already passing a mission", () => {
+    missions.forEach((mission) => {
+      const result = validateMissionCode(mission, mission.starterCode);
+      expect(result.isPass).toBe(false);
+      expect(result.missingCheckpointIds.length).toBeGreaterThan(0);
+    });
+  });
+});
