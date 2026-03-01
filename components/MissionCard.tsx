@@ -1,6 +1,7 @@
 import type { Mission } from "@/features/lessons/types";
 import type { MissionValidationResult } from "@/features/lessons/engine/validator";
 import SimulatorPanel from "@/components/SimulatorPanel";
+import { getCoachFeedback } from "@/features/lessons/engine/coachFeedback";
 
 type MissionCardProps = {
   mission: Mission;
@@ -27,6 +28,7 @@ export default function MissionCard({
   onValidate,
   onReset
 }: MissionCardProps) {
+  const coachFeedback = getCoachFeedback(validationResult, mission.checkpoints, attemptCount);
   const checkpointResultMap = new Map(
     (validationResult?.checkpointResults ?? []).map((result) => [result.checkpointId, result])
   );
@@ -89,6 +91,15 @@ export default function MissionCard({
             </button>
           </div>
           <p className="mt-2 text-xs text-slate-300">Attempts: {attemptCount}</p>
+
+          <section className="mt-4 rounded-xl border border-slate-500/60 bg-[#111b39] p-3">
+            <p className="text-xs uppercase tracking-[0.12em] text-sky">Coach feedback</p>
+            <p className="mt-2 text-sm font-semibold text-neonMint">{coachFeedback.title}</p>
+            <p className="mt-1 text-xs text-slate-200">{coachFeedback.message}</p>
+            <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-300">
+              Next action: {coachFeedback.actionLabel}
+            </p>
+          </section>
         </article>
 
         <div className="flex flex-col gap-4">
