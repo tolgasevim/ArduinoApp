@@ -32,3 +32,11 @@ export function saveProgress(progress: LearnerProgress): void {
 
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
 }
+
+export function clearProgress(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(STORAGE_KEY);
+}

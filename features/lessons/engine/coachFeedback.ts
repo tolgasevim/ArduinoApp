@@ -39,9 +39,14 @@ export function getCoachFeedback(
       ? "You are close. Focus on one checkpoint at a time."
       : "Nice progress. Fix the next checkpoint and run again.";
 
+  const hint =
+    attemptCount >= 3
+      ? (failedResult?.failureReason ?? "Read the pending checkpoint and update your code.")
+      : "Read the pending checkpoint and update your code.";
+
   return {
     title: nextCheckpoint ? `Focus checkpoint: ${nextCheckpoint.title}` : "Focus on the next checkpoint",
-    message: `${encouragement} ${failedResult?.failureReason ?? "Read the pending checkpoint and update your code."}`,
+    message: `${encouragement} ${hint}`,
     actionLabel: "Fix checkpoint and re-run"
   };
 }

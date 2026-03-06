@@ -13,10 +13,10 @@ import {
 } from "@/features/lessons/engine/validator";
 import { getLevelForXp } from "@/features/gamification/levels";
 import type { Mission } from "@/features/lessons/types";
-import { completeMission, withProfile } from "@/features/progress/engine";
+import { completeMission, getDefaultProgress, withProfile } from "@/features/progress/engine";
 import type { LearnerProgress } from "@/features/progress/types";
 import { runtimeConfig } from "@/lib/config/runtime";
-import { loadProgress, saveProgress } from "@/lib/storage/progressStorage";
+import { clearProgress, loadProgress, saveProgress } from "@/lib/storage/progressStorage";
 
 type MissionRunState = {
   code: string;
@@ -143,6 +143,21 @@ export default function HomePage() {
     });
   }
 
+  function handleResetProgress(): void {
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm("Delete saved progress and restart from the beginning?")
+    ) {
+      return;
+    }
+
+    clearProgress();
+    setMissionRuns({});
+    setCelebrationMessage(null);
+    setLearningMode("simulator");
+    setProgress(getDefaultProgress());
+  }
+
   return (
     <>
       <Head>
@@ -187,6 +202,7 @@ export default function HomePage() {
               completedMissions={progress.completedMissionIds.length}
               totalMissions={missions.length}
               streakDays={progress.streakDays}
+              onResetProgress={handleResetProgress}
             />
             {runtimeConfig.hardwareModeEnabled ? (
               <HardwareModePanel mode={learningMode} onModeChange={setLearningMode} />

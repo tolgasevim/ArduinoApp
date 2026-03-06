@@ -124,7 +124,9 @@ export default function MissionCard({
                           {isPassed ? "Passed: " : "Pending: "}
                           {checkpoint.title}
                         </p>
-                        <p className="text-slate-600">{checkpoint.description}</p>
+                        {(isPassed || isCompleted || attemptCount >= 3) && (
+                          <p className="text-slate-600">{checkpoint.description}</p>
+                        )}
                         {checkpointResult?.evidence.length ? (
                           <ul className="mt-1 text-xs text-slate-500">
                             {checkpointResult.evidence.map((evidenceLine) => (
@@ -132,7 +134,7 @@ export default function MissionCard({
                             ))}
                           </ul>
                         ) : null}
-                        {checkpointResult && !checkpointResult.passed && checkpointResult.failureReason ? (
+                        {checkpointResult && !checkpointResult.passed && checkpointResult.failureReason && (isCompleted || attemptCount >= 3) ? (
                           <p className="mt-1 text-xs font-semibold text-coral">
                             {checkpointResult.failureReason}
                           </p>
