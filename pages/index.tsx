@@ -11,6 +11,7 @@ import {
   type MissionValidationResult,
   validateMissionCode
 } from "@/features/lessons/engine/validator";
+import { getVisibleHints } from "@/features/lessons/engine/hintVisibility";
 import { getLevelForXp } from "@/features/gamification/levels";
 import type { Mission } from "@/features/lessons/types";
 import { completeMission, getDefaultProgress, withProfile } from "@/features/progress/engine";
@@ -30,19 +31,6 @@ function getInitialRunState(mission: Mission): MissionRunState {
     attempts: 0,
     validationResult: null
   };
-}
-
-function getVisibleHints(hints: string[], attempts: number, isCompleted: boolean): string[] {
-  if (isCompleted) {
-    return hints;
-  }
-
-  if (attempts < 2) {
-    return [];
-  }
-
-  const count = Math.min(hints.length, 1 + Math.floor((attempts - 2) / 2));
-  return hints.slice(0, count);
 }
 
 export default function HomePage() {

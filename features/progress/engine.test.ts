@@ -38,4 +38,31 @@ describe("progress engine", () => {
     expect(dayTwo.streakDays).toBe(2);
     expect(dayFive.streakDays).toBe(1);
   });
+
+  it("returns unchanged progress for a whitespace-only nickname", () => {
+    const progress = getDefaultProgress();
+    const updated = withProfile(progress, "   ");
+
+    expect(updated.profile).toBeNull();
+  });
+
+  it("truncates nicknames longer than 24 characters", () => {
+    const progress = getDefaultProgress();
+    const updated = withProfile(progress, "ThisNicknameIsWayTooLongForTheApp");
+
+    expect(updated.profile?.nickname).toHaveLength(24);
+    expect(updated.profile?.nickname).toBe("ThisNicknameIsWayTooLong");
+  });
+
+  it("is idempotent — completing the same mission twice does not duplicate XP or badges", () => {
+    const mission = missions[0];
+    const progress = getDefaultProgress();
+
+    const firstTime = completeMission(progress, mission, new Date("2026-02-13T12:00:00Z"));
+    const secondTime = completeMission(firstTime, mission, new Date("2026-02-14T12:00:00Z"));
+
+    expect(secondTime.completedMissionIds.filter((id) => id === mission.id)).toHaveLength(1);
+    expect(secondTime.xp).toBe(mission.reward.xp);
+    expect(secondTime.badges.filter((b) => b === mission.reward.badgeId)).toHaveLength(1);
+  });
 });

@@ -50,4 +50,25 @@ describe("progressStorage", () => {
 
     expect(loadProgress()).toEqual(getDefaultProgress());
   });
+
+  it("returns default progress when window is undefined (SSR)", () => {
+    // window is intentionally not set — simulates server-side rendering
+    expect(loadProgress()).toEqual(getDefaultProgress());
+  });
+
+  it("returns default progress when stored JSON is corrupt", () => {
+    (globalThis as { window?: { localStorage: LocalStorageMock } }).window = {
+      localStorage: createLocalStorageMock()
+    };
+
+    window.localStorage.setItem("arduino-quest-progress-v2", "{ not valid json }}}");
+
+    expect(loadProgress()).toEqual(getDefaultProgress());
+  });
+
+  it("saveProgress and clearProgress are silent no-ops in SSR (window undefined)", () => {
+    // Should not throw when window is undefined
+    expect(() => saveProgress(getDefaultProgress())).not.toThrow();
+    expect(() => clearProgress()).not.toThrow();
+  });
 });
