@@ -53,4 +53,42 @@ describe("getCoachFeedback", () => {
     expect(feedback.title).toContain("Mission mastery unlocked");
     expect(feedback.actionLabel).toBe("Open next mission");
   });
+
+  it("does NOT include failure reason in message before 3 attempts (attemptCount = 2)", () => {
+    expect(mission).toBeDefined();
+
+    const result = validateMissionCode(mission!, "void setup(){} void loop(){}");
+    expect(result.isPass).toBe(false);
+
+    const feedback = getCoachFeedback(result, mission!.checkpoints, 2);
+
+    // Generic fallback message only — no specific function name leaked
+    expect(feedback.message).toContain("Read the pending checkpoint and update your code.");
+    expect(feedback.message).not.toContain("pinMode");
+  });
+
+  it("DOES include failure reason in message at 3 or more attempts (attemptCount = 3)", () => {
+    expect(mission).toBeDefined();
+
+    const result = validateMissionCode(mission!, "void setup(){} void loop(){}");
+    expect(result.isPass).toBe(false);
+
+    const feedback = getCoachFeedback(result, mission!.checkpoints, 3);
+
+    // Should now reveal the specific failure reason (e.g. expected function call)
+    expect(feedback.message).toContain("pinMode");
+  });
+
+  it("shows struggle encouragement at 4+ attempts and standard encouragement below that", () => {
+    expect(mission).toBeDefined();
+
+    const result = validateMissionCode(mission!, "void setup(){} void loop(){}");
+    expect(result.isPass).toBe(false);
+
+    const feedbackEarly = getCoachFeedback(result, mission!.checkpoints, 3);
+    const feedbackLate = getCoachFeedback(result, mission!.checkpoints, 4);
+
+    expect(feedbackEarly.message).toContain("Nice progress.");
+    expect(feedbackLate.message).toContain("You are close.");
+  });
 });

@@ -166,7 +166,7 @@ export default function MissionCard({
       <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
         <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Hint ladder</p>
         {visibleHints.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-600">Hints unlock after two failed checks.</p>
+          <p className="mt-2 text-sm text-slate-600">Hints unlock after your first failed check.</p>
         ) : (
           <ol className="mt-2 list-decimal space-y-1 pl-4 text-sm text-slate-700">
             {visibleHints.map((hint) => (
