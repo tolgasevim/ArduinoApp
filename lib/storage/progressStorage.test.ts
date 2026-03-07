@@ -26,6 +26,10 @@ function createLocalStorageMock(): LocalStorageMock {
   };
 }
 
+// A fake userId for tests — the background fetch is silently swallowed by the
+// catch handler in pushProgressToApi, so no real network call is made.
+const TEST_USER_ID = "test-user-uuid-1234";
+
 describe("progressStorage", () => {
   afterEach(() => {
     delete (globalThis as { window?: { localStorage: LocalStorageMock } }).window;
@@ -43,10 +47,10 @@ describe("progressStorage", () => {
       completedMissionIds: ["mission-blink"]
     };
 
-    saveProgress(savedProgress);
+    saveProgress(TEST_USER_ID, savedProgress);
     expect(loadProgress()).toMatchObject(savedProgress);
 
-    clearProgress();
+    clearProgress(TEST_USER_ID);
 
     expect(loadProgress()).toEqual(getDefaultProgress());
   });
@@ -68,7 +72,7 @@ describe("progressStorage", () => {
 
   it("saveProgress and clearProgress are silent no-ops in SSR (window undefined)", () => {
     // Should not throw when window is undefined
-    expect(() => saveProgress(getDefaultProgress())).not.toThrow();
-    expect(() => clearProgress()).not.toThrow();
+    expect(() => saveProgress(TEST_USER_ID, getDefaultProgress())).not.toThrow();
+    expect(() => clearProgress(TEST_USER_ID)).not.toThrow();
   });
 });

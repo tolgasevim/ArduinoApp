@@ -1,7 +1,25 @@
 name = "arduinoapp"
 main = "workers/health.ts"
 compatibility_date = "2026-02-15"
+compatibility_flags = ["nodejs_compat"]
 
 [observability]
 enabled = true
 
+# ---------------------------------------------------------------------------
+# Cloudflare D1 — SQLite at the edge
+# ---------------------------------------------------------------------------
+# Steps to provision:
+#   1. wrangler d1 create arduino-quest-db
+#   2. Copy the printed database_id into the binding below.
+#   3. wrangler d1 execute arduino-quest-db \
+#        --file=db/migrations/0001_create_learner_progress.sql
+#
+# For local development with a local D1 copy:
+#   wrangler d1 execute arduino-quest-db --local \
+#     --file=db/migrations/0001_create_learner_progress.sql
+# ---------------------------------------------------------------------------
+[[d1_databases]]
+binding       = "DB"
+database_name = "arduino-quest-db"
+database_id   = "REPLACE_WITH_YOUR_D1_DATABASE_ID"

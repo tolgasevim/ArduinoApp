@@ -1,5 +1,5 @@
 import Head from "next/head";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import AppShell from "@/components/AppShell";
 import HardwareModePanel, { type LearningMode } from "@/components/HardwareModePanel";
@@ -17,7 +17,8 @@ import type { Mission } from "@/features/lessons/types";
 import { completeMission, getDefaultProgress, withProfile } from "@/features/progress/engine";
 import type { LearnerProgress } from "@/features/progress/types";
 import { runtimeConfig } from "@/lib/config/runtime";
-import { clearProgress, loadProgress, saveProgress } from "@/lib/storage/progressStorage";
+import { clearProgress, loadProgress, loadProgressFromApi, saveProgress } from "@/lib/storage/progressStorage";
+import { clearUserId, getOrCreateUserId } from "@/lib/storage/userIdentity";
 
 type MissionRunState = {
   code: string;
@@ -38,14 +39,34 @@ export default function HomePage() {
   const [missionRuns, setMissionRuns] = useState<Record<string, MissionRunState>>({});
   const [celebrationMessage, setCelebrationMessage] = useState<string | null>(null);
   const [learningMode, setLearningMode] = useState<LearningMode>("simulator");
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Stable userId ref — populated once on mount, never changes during a session.
+  const userIdRef = useRef<string>("");
+
+  // On mount: resolve the user's UUID then load progress (API → localStorage fallback).
   useEffect(() => {
-    setProgress(loadProgress());
+    async function init() {
+      const userId = getOrCreateUserId();
+      userIdRef.current = userId;
+
+      // Start with the locally-cached value immediately so the UI isn't blank
+      // any longer than necessary while the API call is in flight.
+      setProgress(loadProgress());
+
+      // Fetch the authoritative copy from the database and update if different.
+      const remote = await loadProgressFromApi(userId);
+      setProgress(remote);
+      setIsLoading(false);
+    }
+
+    void init();
   }, []);
 
+  // Persist to localStorage + background-sync to the API whenever progress changes.
   useEffect(() => {
-    if (!progress) return;
-    saveProgress(progress);
+    if (!progress || !userIdRef.current) return;
+    saveProgress(userIdRef.current, progress);
   }, [progress]);
 
   useEffect(() => {
@@ -74,6 +95,24 @@ export default function HomePage() {
       };
     });
   }, [nextMission]);
+
+  // Show a brief loading indicator while the API call is in flight.
+  if (isLoading) {
+    return (
+      <AppShell
+        title="Build. Code. Win."
+        subtitle="This pilot is simulator-first, child-safe by default, and designed for fast beginner wins."
+      >
+        <section
+          className="rounded-2xl border border-slate-200 bg-white px-5 py-6 text-center text-sm text-slate-500"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          Loading your progress…
+        </section>
+      </AppShell>
+    );
+  }
 
   if (!progress) {
     return null;
@@ -139,7 +178,12 @@ export default function HomePage() {
       return;
     }
 
-    clearProgress();
+    clearProgress(userIdRef.current);
+    clearUserId();
+
+    // Generate a fresh UUID for the new session.
+    userIdRef.current = getOrCreateUserId();
+
     setMissionRuns({});
     setCelebrationMessage(null);
     setLearningMode("simulator");
