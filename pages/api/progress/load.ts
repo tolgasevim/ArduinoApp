@@ -1,10 +1,12 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import type { NextRequest } from "next/server";
+import { getRequestContext } from "@cloudflare/next-on-pages";
 
 import { getDefaultProgress } from "@/features/progress/engine";
 import type { LearnerProgress } from "@/features/progress/types";
 
-// Cloudflare D1 binding injected at runtime. Typed minimally to keep the
-// file dependency-free from any Cloudflare SDK package.
+export const runtime = "edge";
+
+// Cloudflare D1 binding injected at runtime.
 type D1Database = {
   prepare: (query: string) => {
     bind: (...values: unknown[]) => {
@@ -34,34 +36,34 @@ function rowToProgress(row: ProgressRow): LearnerProgress {
   };
 }
 
-type ResponseBody = LearnerProgress | { error: string };
+function json(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json" }
+  });
+}
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<ResponseBody>
-): Promise<void> {
+export default async function handler(req: NextRequest): Promise<Response> {
   if (req.method !== "GET") {
-    res.setHeader("Allow", "GET");
-    res.status(405).json({ error: "Method not allowed" });
-    return;
+    return new Response(null, { status: 405, headers: { Allow: "GET" } });
   }
 
-  const { userId } = req.query;
+  const userId = new URL(req.url).searchParams.get("userId");
 
-  if (!userId || typeof userId !== "string" || userId.trim() === "") {
-    res.status(400).json({ error: "Missing or invalid userId query parameter" });
-    return;
+  if (!userId || userId.trim() === "") {
+    return json({ error: "Missing or invalid userId query parameter" }, 400);
   }
 
-  // Access the D1 binding injected by Cloudflare Workers / Pages runtime.
-  // During local Next.js development (pnpm dev) DB will be undefined — fall
-  // back to default progress so the app still works without a database.
-  const db = (process.env as unknown as Record<string, D1Database | undefined>).DB;
+  // Access D1 via Cloudflare edge context; falls back gracefully in local dev.
+  let db: D1Database | undefined;
+  try {
+    db = (getRequestContext().env as Record<string, D1Database | undefined>).DB;
+  } catch {
+    // Local Next.js dev — getRequestContext is not available
+  }
 
   if (!db) {
-    // Local dev fallback: no D1 binding available
-    res.status(200).json(getDefaultProgress());
-    return;
+    return json(getDefaultProgress());
   }
 
   try {
@@ -75,14 +77,9 @@ export default async function handler(
       .bind(userId)
       .first<ProgressRow>();
 
-    if (!row) {
-      res.status(200).json(getDefaultProgress());
-      return;
-    }
-
-    res.status(200).json(rowToProgress(row));
+    return json(row ? rowToProgress(row) : getDefaultProgress());
   } catch (err) {
     console.error("[progress/load] D1 query failed:", err);
-    res.status(500).json({ error: "Database error" });
+    return json({ error: "Database error" }, 500);
   }
 }
