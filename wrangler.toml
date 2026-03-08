@@ -22,4 +22,4 @@ enabled = true
 [[d1_databases]]
 binding       = "DB"
 database_name = "arduino-quest-db"
-database_id   = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id   = "353d325c-0aa5-46b6-9baf-589dbd6c3b58"
