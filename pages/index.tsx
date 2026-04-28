@@ -4,9 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import AppShell from "@/components/AppShell";
 import HardwareModePanel, { type LearningMode } from "@/components/HardwareModePanel";
 import MissionCard from "@/components/MissionCard";
+import MissionMap from "@/components/MissionMap";
 import OnboardingCard from "@/components/OnboardingCard";
 import ProgressSummary from "@/components/ProgressSummary";
 import { missions } from "@/features/lessons/data/missions";
+import {
+  buildMissionGraph,
+  getActiveMissionId
+} from "@/features/lessons/engine/missionGraph";
 import {
   type MissionValidationResult,
   validateMissionCode
@@ -40,6 +45,7 @@ export default function HomePage() {
   const [celebrationMessage, setCelebrationMessage] = useState<string | null>(null);
   const [learningMode, setLearningMode] = useState<LearningMode>("simulator");
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedMissionId, setSelectedMissionId] = useState<string | null>(null);
 
   // Stable userId ref — populated once on mount, never changes during a session.
   const userIdRef = useRef<string>("");
@@ -83,18 +89,32 @@ export default function HomePage() {
     );
   }, [progress]);
 
+  const missionNodes = useMemo(
+    () => buildMissionGraph(missions, progress?.completedMissionIds ?? []),
+    [progress]
+  );
+
+  const activeMissionId = useMemo(() => getActiveMissionId(missionNodes), [missionNodes]);
+
+  const displayMission = useMemo(() => {
+    if (selectedMissionId) {
+      return missions.find((m) => m.id === selectedMissionId) ?? nextMission;
+    }
+    return nextMission;
+  }, [selectedMissionId, nextMission]);
+
   useEffect(() => {
     setMissionRuns((current) => {
-      if (current[nextMission.id]) {
+      if (current[displayMission.id]) {
         return current;
       }
 
       return {
         ...current,
-        [nextMission.id]: getInitialRunState(nextMission)
+        [displayMission.id]: getInitialRunState(displayMission)
       };
     });
-  }, [nextMission]);
+  }, [displayMission]);
 
   // Show a brief loading indicator while the API call is in flight.
   if (isLoading) {
@@ -125,23 +145,27 @@ export default function HomePage() {
     });
   }
 
-  const currentRun = missionRuns[nextMission.id] ?? getInitialRunState(nextMission);
-  const isCompleted = progress.completedMissionIds.includes(nextMission.id);
-  const visibleHints = getVisibleHints(nextMission.hints, currentRun.attempts, isCompleted);
+  const currentRun = missionRuns[displayMission.id] ?? getInitialRunState(displayMission);
+  const isCompleted = progress.completedMissionIds.includes(displayMission.id);
+  const visibleHints = getVisibleHints(displayMission.hints, currentRun.attempts, isCompleted);
   const level = getLevelForXp(progress.xp);
 
   function updateCurrentRun(partial: Partial<MissionRunState>): void {
     setMissionRuns((current) => ({
       ...current,
-      [nextMission.id]: {
-        ...(current[nextMission.id] ?? getInitialRunState(nextMission)),
+      [displayMission.id]: {
+        ...(current[displayMission.id] ?? getInitialRunState(displayMission)),
         ...partial
       }
     }));
   }
 
+  function handleSelectMission(missionId: string): void {
+    setSelectedMissionId(missionId);
+  }
+
   function handleValidateMission(): void {
-    const result = validateMissionCode(nextMission, currentRun.code);
+    const result = validateMissionCode(displayMission, currentRun.code);
     const nextAttemptCount = currentRun.attempts + 1;
 
     updateCurrentRun({
@@ -157,16 +181,17 @@ export default function HomePage() {
       if (!current) {
         return current;
       }
-      return completeMission(current, nextMission);
+      return completeMission(current, displayMission);
     });
+    setSelectedMissionId(null);
     setCelebrationMessage(
-      `Mission complete. You earned ${nextMission.reward.xp} XP and ${nextMission.reward.badgeLabel}.`
+      `Mission complete. You earned ${displayMission.reward.xp} XP and ${displayMission.reward.badgeLabel}.`
     );
   }
 
   function handleResetCode(): void {
     updateCurrentRun({
-      code: nextMission.starterCode
+      code: displayMission.starterCode
     });
   }
 
@@ -236,6 +261,12 @@ export default function HomePage() {
               streakDays={progress.streakDays}
               onResetProgress={handleResetProgress}
             />
+            <MissionMap
+              nodes={missionNodes}
+              activeMissionId={activeMissionId}
+              selectedMissionId={selectedMissionId}
+              onSelectMission={handleSelectMission}
+            />
             {runtimeConfig.hardwareModeEnabled ? (
               <HardwareModePanel mode={learningMode} onModeChange={setLearningMode} />
             ) : (
@@ -244,7 +275,7 @@ export default function HomePage() {
               </section>
             )}
             <MissionCard
-              mission={nextMission}
+              mission={displayMission}
               isCompleted={isCompleted}
               modeLabel={learningMode === "hardware" ? "Real Arduino (Web Serial)" : "Simulator"}
               code={currentRun.code}
