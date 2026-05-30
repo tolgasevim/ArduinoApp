@@ -54,16 +54,20 @@ export default async function handler(req: NextRequest): Promise<Response> {
     return json({ error: "Missing or invalid userId query parameter" }, 400);
   }
 
-  // Access D1 via Cloudflare edge context; falls back gracefully in local dev.
+  // Access D1 via Cloudflare edge context.
   let db: D1Database | undefined;
+  let contextError: string | undefined;
   try {
     db = (getRequestContext().env as Record<string, D1Database | undefined>).DB;
-  } catch {
-    // Local Next.js dev — getRequestContext is not available
+  } catch (err) {
+    contextError = err instanceof Error ? err.message : String(err);
   }
 
   if (!db) {
-    return json(getDefaultProgress());
+    return json({
+      error: "D1 binding unavailable",
+      detail: contextError ?? "getRequestContext() succeeded but DB binding is undefined — check Cloudflare Pages binding name (must be 'DB')"
+    }, 503);
   }
 
   try {
